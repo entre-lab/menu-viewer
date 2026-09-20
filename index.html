@@ -35,11 +35,16 @@
       background: var(--bg);
     }
 
+    button {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     .shell {
       width: min(100%, var(--max));
       margin: 0 auto;
       padding: max(22px, env(safe-area-inset-top)) 16px
-        max(28px, env(safe-area-inset-bottom));
+        max(110px, calc(92px + env(safe-area-inset-bottom)));
     }
 
     header {
@@ -57,19 +62,17 @@
       letter-spacing: -0.02em;
     }
 
-    .share {
+    .share,
+    .back {
       flex: 0 0 auto;
       border: 1px solid var(--line);
       border-radius: 999px;
       background: var(--panel-head);
       color: var(--text);
-      font: inherit;
       font-size: 14px;
       padding: 9px 13px;
       cursor: pointer;
     }
-
-    .share[hidden] { display: none; }
 
     .section {
       margin: 0 0 26px;
@@ -105,7 +108,8 @@
       text-align: center;
     }
 
-    .section-items {
+    .section-items,
+    .order-list {
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 24px;
@@ -117,14 +121,19 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
     }
 
-    .item {
+    .item,
+    .order-item {
       padding: 18px 18px 17px;
       border-top: 1px solid rgba(255,255,255,0.05);
     }
 
-    .section-items > .item:first-child { border-top: 0; }
+    .section-items > .item:first-child,
+    .order-list > .order-item:first-child {
+      border-top: 0;
+    }
 
-    .item-top {
+    .item-top,
+    .order-item-top {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 14px;
@@ -132,7 +141,8 @@
     }
 
     .original-name,
-    .legacy-original {
+    .legacy-original,
+    .order-original {
       margin: 0;
       min-width: 0;
       color: var(--text);
@@ -141,6 +151,11 @@
       font-weight: 700;
       white-space: pre-line;
       overflow-wrap: anywhere;
+    }
+
+    .order-original {
+      font-size: 18px;
+      line-height: 1.4;
     }
 
     .price {
@@ -152,7 +167,8 @@
       white-space: nowrap;
     }
 
-    .zh-name {
+    .zh-name,
+    .order-zh {
       margin: 5px 0 0;
       color: var(--zh);
       font-size: 16px;
@@ -161,7 +177,14 @@
       overflow-wrap: anywhere;
     }
 
-    .original-description {
+    .order-zh {
+      margin-top: 7px;
+      font-size: 15px;
+      font-weight: 550;
+    }
+
+    .original-description,
+    .order-original-description {
       margin: 9px 0 0;
       color: var(--muted);
       font-size: 13px;
@@ -171,7 +194,8 @@
     }
 
     .zh-description,
-    .legacy-zh {
+    .legacy-zh,
+    .order-zh-description {
       margin: 5px 0 0;
       color: var(--zh);
       font-size: 15px;
@@ -180,12 +204,166 @@
       overflow-wrap: anywhere;
     }
 
-    .item-note {
+    .order-zh-description {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .item-note,
+    .order-note {
       margin: 9px 0 0;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.45;
       white-space: pre-line;
+    }
+
+    .item-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .add-button {
+      min-width: 86px;
+      border: 1px solid rgba(216,178,122,0.45);
+      border-radius: 999px;
+      background: rgba(216,178,122,0.08);
+      color: var(--price);
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    .stepper {
+      display: inline-grid;
+      grid-template-columns: 38px 42px 38px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--panel-head);
+    }
+
+    .stepper button {
+      height: 36px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .stepper .qty {
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .order-dock {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: min(calc(100% - 24px), 728px);
+      transform: translateX(-50%);
+      border: 1px solid rgba(216,178,122,0.35);
+      border-radius: 18px;
+      background: rgba(29,29,29,0.96);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.38);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .order-dock[hidden] { display: none; }
+
+    .order-dock-button {
+      width: 100%;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border: 0;
+      border-radius: inherit;
+      background: transparent;
+      color: var(--text);
+      padding: 12px 16px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .order-dock-count {
+      color: var(--zh);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .order-dock-label {
+      color: var(--price);
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .summary-intro {
+      margin: -6px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .order-item-side {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .order-qty {
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 800;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .order-adjust {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 13px;
+    }
+
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 14px 4px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .order-footer strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .empty-order {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      padding: 22px 18px;
+      text-align: center;
+      color: var(--zh);
+      line-height: 1.55;
+    }
+
+    .empty-order button {
+      margin-top: 14px;
     }
 
     .status {
@@ -209,18 +387,27 @@
 
     @media (min-width: 640px) {
       .shell { padding-left: 22px; padding-right: 22px; }
-      .item { padding: 19px 20px 18px; }
+      .item,
+      .order-item { padding: 19px 20px 18px; }
     }
   </style>
 </head>
 <body>
   <main class="shell" id="app" aria-live="polite"></main>
+  <div class="order-dock" id="orderDock" hidden></div>
 
   <script>
     (() => {
       "use strict";
 
       const app = document.getElementById("app");
+      const orderDock = document.getElementById("orderDock");
+
+      let currentMenu = null;
+      let currentSections = [];
+      let currentView = "menu";
+      let order = new Map();
+      let storageKey = "";
 
       const hasText = (value) =>
         typeof value === "string" && value.trim().length > 0;
@@ -255,7 +442,99 @@
         return decodePayload(params.get("d"));
       }
 
+      function makeStorageKey() {
+        let hash = 2166136261;
+        const source = location.hash;
+        for (let i = 0; i < source.length; i += 1) {
+          hash ^= source.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        return "menu-viewer-order:" + (hash >>> 0).toString(36);
+      }
+
+      function loadOrder() {
+        order = new Map();
+        storageKey = makeStorageKey();
+
+        try {
+          const raw = sessionStorage.getItem(storageKey);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") return;
+
+          Object.entries(parsed).forEach(([key, value]) => {
+            const qty = Number(value);
+            if (Number.isInteger(qty) && qty > 0) {
+              order.set(key, qty);
+            }
+          });
+        } catch {
+          order = new Map();
+        }
+      }
+
+      function saveOrder() {
+        try {
+          const plain = {};
+          order.forEach((value, key) => {
+            if (value > 0) plain[key] = value;
+          });
+          sessionStorage.setItem(storageKey, JSON.stringify(plain));
+        } catch {
+          // Ordering still works even when session storage is unavailable.
+        }
+      }
+
+      function itemKey(sectionIndex, itemIndex) {
+        return sectionIndex + ":" + itemIndex;
+      }
+
+      function quantityFor(sectionIndex, itemIndex) {
+        return order.get(itemKey(sectionIndex, itemIndex)) || 0;
+      }
+
+      function totalQuantity() {
+        let total = 0;
+        order.forEach((qty) => { total += qty; });
+        return total;
+      }
+
+      function selectedItemCount() {
+        return order.size;
+      }
+
+      function itemFields(item) {
+        const structuredKeys = [
+          "original_name",
+          "zh_name",
+          "original_description",
+          "zh_description"
+        ];
+        const structured = structuredKeys.some((key) => hasText(item?.[key]));
+
+        if (structured) {
+          return {
+            original: hasText(item?.original_name) ? item.original_name : "",
+            zh: hasText(item?.zh_name) ? item.zh_name : "",
+            originalDescription: hasText(item?.original_description)
+              ? item.original_description
+              : "",
+            zhDescription: hasText(item?.zh_description)
+              ? item.zh_description
+              : ""
+          };
+        }
+
+        return {
+          original: hasText(item?.original) ? item.original : "",
+          zh: hasText(item?.zh) ? item.zh : "",
+          originalDescription: "",
+          zhDescription: ""
+        };
+      }
+
       function showError() {
+        orderDock.hidden = true;
         app.replaceChildren();
         const box = el("div", "status");
         box.append(
@@ -265,70 +544,113 @@
         app.append(box);
       }
 
-      function renderItem(item) {
-        const card = el("article", "item");
-        const structuredKeys = [
-          "original_name",
-          "zh_name",
-          "original_description",
-          "zh_description"
-        ];
-        const structured = structuredKeys.some((key) => hasText(item?.[key]));
+      function preserveScrollRender(renderFn) {
+        const y = window.scrollY;
+        renderFn();
+        requestAnimationFrame(() => window.scrollTo(0, y));
+      }
 
+      function changeQuantity(sectionIndex, itemIndex, delta) {
+        const key = itemKey(sectionIndex, itemIndex);
+        const next = Math.max(0, (order.get(key) || 0) + delta);
+
+        if (next > 0) order.set(key, next);
+        else order.delete(key);
+
+        saveOrder();
+
+        if (currentView === "summary") {
+          preserveScrollRender(renderSummary);
+        } else {
+          preserveScrollRender(renderMenu);
+        }
+      }
+
+      function createStepper(sectionIndex, itemIndex, quantity) {
+        const stepper = el("div", "stepper");
+
+        const minus = el("button", "", "−");
+        minus.type = "button";
+        minus.setAttribute("aria-label", "減少數量");
+        minus.addEventListener("click", () =>
+          changeQuantity(sectionIndex, itemIndex, -1)
+        );
+
+        const qty = el("span", "qty", quantity);
+
+        const plus = el("button", "", "+");
+        plus.type = "button";
+        plus.setAttribute("aria-label", "增加數量");
+        plus.addEventListener("click", () =>
+          changeQuantity(sectionIndex, itemIndex, 1)
+        );
+
+        stepper.append(minus, qty, plus);
+        return stepper;
+      }
+
+      function renderItem(item, sectionIndex, itemIndex) {
+        const card = el("article", "item");
+        const fields = itemFields(item);
         const top = el("div", "item-top");
 
-        if (structured) {
-          if (hasText(item.original_name)) {
-            top.append(el("p", "original-name", item.original_name));
-          } else {
-            top.append(el("span", ""));
-          }
-
-          if (hasText(item.price)) {
-            top.append(el("div", "price", item.price));
-          }
-
-          card.append(top);
-
-          if (hasText(item.zh_name)) {
-            card.append(el("p", "zh-name", item.zh_name));
-          }
-
-          if (hasText(item.original_description)) {
-            card.append(
-              el("p", "original-description", item.original_description)
-            );
-          }
-
-          if (hasText(item.zh_description)) {
-            card.append(el("p", "zh-description", item.zh_description));
-          }
+        if (hasText(fields.original)) {
+          top.append(el("p", "original-name", fields.original));
         } else {
-          if (hasText(item?.original)) {
-            top.append(el("p", "legacy-original", item.original));
-          } else {
-            top.append(el("span", ""));
-          }
+          top.append(el("span", ""));
+        }
 
-          if (hasText(item?.price)) {
-            top.append(el("div", "price", item.price));
-          }
+        if (hasText(item?.price)) {
+          top.append(el("div", "price", item.price));
+        }
 
-          card.append(top);
+        card.append(top);
 
-          if (hasText(item?.zh)) {
-            card.append(el("p", "legacy-zh", item.zh));
-          }
+        if (hasText(fields.zh)) {
+          card.append(el("p", "zh-name", fields.zh));
+        }
+
+        if (hasText(fields.originalDescription)) {
+          card.append(
+            el("p", "original-description", fields.originalDescription)
+          );
+        }
+
+        if (hasText(fields.zhDescription)) {
+          card.append(el("p", "zh-description", fields.zhDescription));
         }
 
         if (hasText(item?.note)) {
           card.append(el("p", "item-note", item.note));
         }
 
+        const hasOrderableLabel =
+          hasText(fields.original) || hasText(fields.zh);
+
+        if (hasOrderableLabel) {
+          const actions = el("div", "item-actions");
+          const quantity = quantityFor(sectionIndex, itemIndex);
+
+          if (quantity > 0) {
+            actions.append(
+              createStepper(sectionIndex, itemIndex, quantity)
+            );
+          } else {
+            const add = el("button", "add-button", "＋ 加入");
+            add.type = "button";
+            add.addEventListener("click", () =>
+              changeQuantity(sectionIndex, itemIndex, 1)
+            );
+            actions.append(add);
+          }
+
+          card.append(actions);
+        }
+
         return card;
       }
 
-      function renderSection(section) {
+      function renderSection(section, sectionIndex) {
         const wrap = el("section", "section");
         const hasHeading =
           hasText(section?.original) ||
@@ -355,10 +677,43 @@
 
         const itemsWrap = el("div", "section-items");
         const items = Array.isArray(section?.items) ? section.items : [];
-        items.forEach((item) => itemsWrap.append(renderItem(item || {})));
+        items.forEach((item, itemIndex) =>
+          itemsWrap.append(
+            renderItem(item || {}, sectionIndex, itemIndex)
+          )
+        );
         wrap.append(itemsWrap);
 
         return wrap;
+      }
+
+      function renderOrderDock() {
+        orderDock.replaceChildren();
+
+        if (currentView !== "menu" || selectedItemCount() === 0) {
+          orderDock.hidden = true;
+          return;
+        }
+
+        const button = el("button", "order-dock-button");
+        button.type = "button";
+
+        const count = el(
+          "span",
+          "order-dock-count",
+          "已選 " + selectedItemCount() + " 項・共 " + totalQuantity() + " 份"
+        );
+        const label = el("span", "order-dock-label", "查看點餐清單");
+
+        button.append(count, label);
+        button.addEventListener("click", () => {
+          currentView = "summary";
+          renderSummary();
+          window.scrollTo(0, 0);
+        });
+
+        orderDock.append(button);
+        orderDock.hidden = false;
       }
 
       async function shareCurrentUrl(button) {
@@ -386,7 +741,162 @@
         }
       }
 
-      function render() {
+      function renderMenu() {
+        currentView = "menu";
+        app.replaceChildren();
+
+        const header = document.createElement("header");
+        const title = hasText(currentMenu?.title) ? currentMenu.title : "菜單";
+        document.title = title + " · Menu Viewer";
+        header.append(el("h1", "", title));
+
+        const share = el("button", "share", "分享");
+        share.type = "button";
+        share.addEventListener("click", () => shareCurrentUrl(share));
+        header.append(share);
+        app.append(header);
+
+        currentSections.forEach((section, sectionIndex) =>
+          app.append(renderSection(section || {}, sectionIndex))
+        );
+
+        renderOrderDock();
+      }
+
+      function orderedEntries() {
+        const entries = [];
+
+        currentSections.forEach((section, sectionIndex) => {
+          const items = Array.isArray(section?.items) ? section.items : [];
+          items.forEach((item, itemIndex) => {
+            const quantity = quantityFor(sectionIndex, itemIndex);
+            if (quantity > 0) {
+              entries.push({
+                sectionIndex,
+                itemIndex,
+                item: item || {},
+                quantity
+              });
+            }
+          });
+        });
+
+        return entries;
+      }
+
+      function renderOrderItem(entry) {
+        const { sectionIndex, itemIndex, item, quantity } = entry;
+        const fields = itemFields(item);
+        const card = el("article", "order-item");
+        const top = el("div", "order-item-top");
+        const names = el("div", "");
+
+        if (hasText(fields.original)) {
+          names.append(el("p", "order-original", fields.original));
+        }
+
+        if (hasText(fields.zh)) {
+          names.append(el("p", "order-zh", fields.zh));
+        }
+
+        const side = el("div", "order-item-side");
+        side.append(el("div", "order-qty", "×" + quantity));
+
+        if (hasText(item?.price)) {
+          side.append(el("div", "price", item.price));
+        }
+
+        top.append(names, side);
+        card.append(top);
+
+        if (hasText(fields.originalDescription)) {
+          card.append(
+            el(
+              "p",
+              "order-original-description",
+              fields.originalDescription
+            )
+          );
+        }
+
+        if (hasText(fields.zhDescription)) {
+          card.append(
+            el("p", "order-zh-description", fields.zhDescription)
+          );
+        }
+
+        if (hasText(item?.note)) {
+          card.append(el("p", "order-note", item.note));
+        }
+
+        const adjust = el("div", "order-adjust");
+        adjust.append(
+          createStepper(sectionIndex, itemIndex, quantity)
+        );
+        card.append(adjust);
+
+        return card;
+      }
+
+      function renderSummary() {
+        currentView = "summary";
+        orderDock.hidden = true;
+        app.replaceChildren();
+        document.title = "點餐清單 · Menu Viewer";
+
+        const header = document.createElement("header");
+        header.append(el("h1", "", "點餐清單"));
+
+        const back = el("button", "back", "← 返回菜單");
+        back.type = "button";
+        back.addEventListener("click", () => {
+          currentView = "menu";
+          renderMenu();
+          window.scrollTo(0, 0);
+        });
+        header.append(back);
+        app.append(header);
+
+        app.append(
+          el(
+            "p",
+            "summary-intro",
+            "原文優先顯示，方便直接給店家確認。"
+          )
+        );
+
+        const entries = orderedEntries();
+
+        if (!entries.length) {
+          const empty = el("div", "empty-order");
+          empty.append(el("div", "", "目前還沒有選擇餐點。"));
+
+          const backToMenu = el("button", "add-button", "返回菜單");
+          backToMenu.type = "button";
+          backToMenu.addEventListener("click", () => {
+            currentView = "menu";
+            renderMenu();
+          });
+          empty.append(backToMenu);
+          app.append(empty);
+          return;
+        }
+
+        const list = el("div", "order-list");
+        entries.forEach((entry) =>
+          list.append(renderOrderItem(entry))
+        );
+        app.append(list);
+
+        const footer = el("div", "order-footer");
+        footer.append(
+          el("span", "", "共 " + selectedItemCount() + " 項"),
+          el("strong", "", totalQuantity() + " 份")
+        );
+        app.append(footer);
+      }
+
+      function loadMenu() {
         try {
           const raw = getPayload();
           const menu =
@@ -403,30 +913,23 @@
 
           if (!sections.length) throw new Error("empty menu");
 
-          app.replaceChildren();
-
-          const header = document.createElement("header");
-          const title = hasText(menu.title) ? menu.title : "菜單";
-          document.title = title + " · Menu Viewer";
-          header.append(el("h1", "", title));
-
-          const share = el("button", "share", "分享");
-          share.type = "button";
-          share.addEventListener("click", () => shareCurrentUrl(share));
-          header.append(share);
-          app.append(header);
-
-          sections.forEach((section) =>
-            app.append(renderSection(section || {}))
-          );
+          currentMenu = menu;
+          currentSections = sections;
+          currentView = "menu";
+          loadOrder();
+          renderMenu();
         } catch {
+          currentMenu = null;
+          currentSections = [];
+          currentView = "menu";
+          order = new Map();
           document.title = "Menu Viewer";
           showError();
         }
       }
 
-      window.addEventListener("hashchange", render);
-      render();
+      window.addEventListener("hashchange", loadMenu);
+      loadMenu();
     })();
   </script>
 </body>
