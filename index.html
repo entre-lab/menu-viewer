@@ -636,7 +636,7 @@
               createStepper(sectionIndex, itemIndex, quantity)
             );
           } else {
-            const add = el("button", "add-button", "＋ 加入");
+            const add = el("button", "add-button", "加入");
             add.type = "button";
             add.addEventListener("click", () =>
               changeQuantity(sectionIndex, itemIndex, 1)
@@ -809,26 +809,6 @@
         top.append(names, side);
         card.append(top);
 
-        if (hasText(fields.originalDescription)) {
-          card.append(
-            el(
-              "p",
-              "order-original-description",
-              fields.originalDescription
-            )
-          );
-        }
-
-        if (hasText(fields.zhDescription)) {
-          card.append(
-            el("p", "order-zh-description", fields.zhDescription)
-          );
-        }
-
-        if (hasText(item?.note)) {
-          card.append(el("p", "order-note", item.note));
-        }
-
         const adjust = el("div", "order-adjust");
         adjust.append(
           createStepper(sectionIndex, itemIndex, quantity)
@@ -856,14 +836,6 @@
         });
         header.append(back);
         app.append(header);
-
-        app.append(
-          el(
-            "p",
-            "summary-intro",
-            "原文優先顯示，方便直接給店家確認。"
-          )
-        );
 
         const entries = orderedEntries();
 
