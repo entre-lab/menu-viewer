@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <title>Menu Viewer</title>
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --panel: #161616;
+      --panel-head: #1d1d1d;
+      --text: #f2f0eb;
+      --zh: #c9c6bf;
+      --muted: #8f8b84;
+      --line: #2a2926;
+      --price: #e7a184;
+      --max: 760px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .shell {
+      width: min(100%, var(--max));
+      margin: 0 auto;
+      padding: max(22px, env(safe-area-inset-top)) 16px
+        max(28px, env(safe-area-inset-bottom));
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 4px 0 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 6vw, 34px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+    }
+
+    .share {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel-head);
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      padding: 9px 13px;
+      cursor: pointer;
+    }
+
+    .share[hidden] { display: none; }
+
+    .section {
+      margin: 0 0 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+    }
+
+    .section-head {
+      padding: 15px 16px 14px;
+      background: var(--panel-head);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-original {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .section-zh {
+      margin: 5px 0 0;
+      color: var(--zh);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .section-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .item {
+      padding: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head + .item { border-top: 0; }
+    .section > .item:first-child { border-top: 0; }
+
+    .item-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: baseline;
+    }
+
+    .original-name,
+    .legacy-original {
+      margin: 0;
+      min-width: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 700;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    .price {
+      color: var(--price);
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .zh-name {
+      margin: 5px 0 0;
+      color: var(--zh);
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .original-description {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    .zh-description,
+    .legacy-zh {
+      margin: 5px 0 0;
+      color: var(--zh);
+      font-size: 15px;
+      line-height: 1.55;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    .item-note {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .status {
+      margin: 18vh auto 0;
+      width: min(100%, 520px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      padding: 22px 18px;
+      text-align: center;
+      color: var(--zh);
+      line-height: 1.55;
+    }
+
+    .status strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-size: 18px;
+    }
+
+    @media (min-width: 640px) {
+      .shell { padding-left: 22px; padding-right: 22px; }
+      .item { padding: 18px; }
+      .section-head { padding: 17px 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" id="app" aria-live="polite"></main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const app = document.getElementById("app");
+
+      const hasText = (value) =>
+        typeof value === "string" && value.trim().length > 0;
+
+      const text = (value) => {
+        if (value === null || value === undefined) return "";
+        return String(value);
+      };
+
+      function el(tag, className, value) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (value !== undefined && value !== null) node.textContent = text(value);
+        return node;
+      }
+
+      function decodePayload(encoded) {
+        if (!encoded) throw new Error("missing payload");
+
+        let base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+        const remainder = base64.length % 4;
+        if (remainder) base64 += "=".repeat(4 - remainder);
+
+        const binary = atob(base64);
+        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        const json = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        return JSON.parse(json);
+      }
+
+      function getPayload() {
+        const params = new URLSearchParams(location.hash.slice(1));
+        return decodePayload(params.get("d"));
+      }
+
+      function showError() {
+        app.replaceChildren();
+        const box = el("div", "status");
+        box.append(
+          el("strong", "", "無法載入菜單資料"),
+          el("div", "", "請重新開啟完整的菜單分享連結。")
+        );
+        app.append(box);
+      }
+
+      function renderItem(item) {
+        const card = el("article", "item");
+        const structuredKeys = [
+          "original_name",
+          "zh_name",
+          "original_description",
+          "zh_description"
+        ];
+        const structured = structuredKeys.some((key) => hasText(item?.[key]));
+
+        const top = el("div", "item-top");
+
+        if (structured) {
+          if (hasText(item.original_name)) {
+            top.append(el("p", "original-name", item.original_name));
+          } else {
+            top.append(el("span", ""));
+          }
+
+          if (hasText(item.price)) {
+            top.append(el("div", "price", item.price));
+          }
+
+          card.append(top);
+
+          if (hasText(item.zh_name)) {
+            card.append(el("p", "zh-name", item.zh_name));
+          }
+
+          if (hasText(item.original_description)) {
+            card.append(
+              el("p", "original-description", item.original_description)
+            );
+          }
+
+          if (hasText(item.zh_description)) {
+            card.append(el("p", "zh-description", item.zh_description));
+          }
+        } else {
+          if (hasText(item?.original)) {
+            top.append(el("p", "legacy-original", item.original));
+          } else {
+            top.append(el("span", ""));
+          }
+
+          if (hasText(item?.price)) {
+            top.append(el("div", "price", item.price));
+          }
+
+          card.append(top);
+
+          if (hasText(item?.zh)) {
+            card.append(el("p", "legacy-zh", item.zh));
+          }
+        }
+
+        if (hasText(item?.note)) {
+          card.append(el("p", "item-note", item.note));
+        }
+
+        return card;
+      }
+
+      function renderSection(section) {
+        const wrap = el("section", "section");
+        const hasHeading =
+          hasText(section?.original) ||
+          hasText(section?.zh) ||
+          hasText(section?.note);
+
+        if (hasHeading) {
+          const head = el("div", "section-head");
+
+          if (hasText(section.original)) {
+            head.append(el("h2", "section-original", section.original));
+          }
+
+          if (hasText(section.zh)) {
+            head.append(el("p", "section-zh", section.zh));
+          }
+
+          if (hasText(section.note)) {
+            head.append(el("p", "section-note", section.note));
+          }
+
+          wrap.append(head);
+        }
+
+        const items = Array.isArray(section?.items) ? section.items : [];
+        items.forEach((item) => wrap.append(renderItem(item || {})));
+        return wrap;
+      }
+
+      async function shareCurrentUrl(button) {
+        const url = location.href;
+        const previous = button.textContent;
+
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: document.title, url });
+            return;
+          }
+
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(url);
+            button.textContent = "已複製";
+            setTimeout(() => (button.textContent = previous), 1400);
+            return;
+          }
+
+          throw new Error("share unavailable");
+        } catch (error) {
+          if (error?.name === "AbortError") return;
+          button.textContent = "請複製網址";
+          setTimeout(() => (button.textContent = previous), 1800);
+        }
+      }
+
+      function render() {
+        try {
+          const raw = getPayload();
+          const menu =
+            raw && typeof raw.menu === "object" && raw.menu !== null
+              ? raw.menu
+              : raw;
+
+          if (!menu || typeof menu !== "object") throw new Error("bad menu");
+
+          let sections = Array.isArray(menu.sections) ? menu.sections : [];
+          if (!sections.length && Array.isArray(menu.items)) {
+            sections = [{ items: menu.items }];
+          }
+
+          if (!sections.length) throw new Error("empty menu");
+
+          app.replaceChildren();
+
+          const header = document.createElement("header");
+          const title = hasText(menu.title) ? menu.title : "菜單";
+          document.title = title + " · Menu Viewer";
+          header.append(el("h1", "", title));
+
+          const share = el("button", "share", "分享");
+          share.type = "button";
+          share.addEventListener("click", () => shareCurrentUrl(share));
+          header.append(share);
+          app.append(header);
+
+          sections.forEach((section) =>
+            app.append(renderSection(section || {}))
+          );
+        } catch {
+          document.title = "Menu Viewer";
+          showError();
+        }
+      }
+
+      window.addEventListener("hashchange", render);
+      render();
+    })();
+  </script>
+</body>
+</html>
