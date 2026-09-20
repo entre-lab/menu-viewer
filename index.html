@@ -424,7 +424,7 @@
         return node;
       }
 
-      function decodePayload(encoded) {
+      function base64UrlToBytes(encoded) {
         if (!encoded) throw new Error("missing payload");
 
         let base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -432,14 +432,58 @@
         if (remainder) base64 += "=".repeat(4 - remainder);
 
         const binary = atob(base64);
-        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      }
+
+      function decodePayload(encoded) {
+        const bytes = base64UrlToBytes(encoded);
         const json = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
         return JSON.parse(json);
       }
 
-      function getPayload() {
+      async function decodeCompressedPayload(encoded) {
+        if (!("DecompressionStream" in window)) {
+          throw new Error("gzip unsupported");
+        }
+
+        const bytes = base64UrlToBytes(encoded);
+        const stream = new Blob([bytes])
+          .stream()
+          .pipeThrough(new DecompressionStream("gzip"));
+        const json = await new Response(stream).text();
+        return JSON.parse(json);
+      }
+
+      async function getPayload() {
         const params = new URLSearchParams(location.hash.slice(1));
+        const compressed = params.get("z");
+        if (compressed) return decodeCompressedPayload(compressed);
         return decodePayload(params.get("d"));
+      }
+
+      function normalizeCompactPayload(raw) {
+        if (!raw || typeof raw !== "object" || !Array.isArray(raw.s)) {
+          return raw;
+        }
+
+        return {
+          title: hasText(raw.t) ? raw.t : "菜單",
+          sections: raw.s.map((section) => ({
+            original: hasText(section?.o) ? section.o : "",
+            zh: hasText(section?.z) ? section.z : "",
+            note: hasText(section?.n) ? section.n : "",
+            items: Array.isArray(section?.i)
+              ? section.i.map((item) => ({
+                  original_name: hasText(item?.o) ? item.o : "",
+                  zh_name: hasText(item?.z) ? item.z : "",
+                  original_description: hasText(item?.od) ? item.od : "",
+                  zh_description: hasText(item?.zd) ? item.zd : "",
+                  price: hasText(item?.p) ? item.p : "",
+                  note: hasText(item?.n) ? item.n : ""
+                }))
+              : []
+          }))
+        };
       }
 
       function makeStorageKey() {
@@ -868,13 +912,14 @@
         app.append(footer);
       }
 
-      function loadMenu() {
+      async function loadMenu() {
         try {
-          const raw = getPayload();
-          const menu =
-            raw && typeof raw.menu === "object" && raw.menu !== null
-              ? raw.menu
-              : raw;
+          const decoded = await getPayload();
+          const raw =
+            decoded && typeof decoded.menu === "object" && decoded.menu !== null
+              ? decoded.menu
+              : decoded;
+          const menu = normalizeCompactPayload(raw);
 
           if (!menu || typeof menu !== "object") throw new Error("bad menu");
 
