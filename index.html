@@ -15,7 +15,7 @@
       --zh: #c9c6bf;
       --muted: #8f8b84;
       --line: #2a2926;
-      --price: #e7a184;
+      --price: #d8b27a;
       --max: 760px;
     }
 
@@ -72,31 +72,28 @@
     .share[hidden] { display: none; }
 
     .section {
-      margin: 0 0 18px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: var(--panel);
+      margin: 0 0 26px;
     }
 
-    .section-head {
-      padding: 15px 16px 14px;
-      background: var(--panel-head);
-      border-bottom: 1px solid var(--line);
+    .section-title {
+      margin: 0 0 14px;
+      padding: 2px 8px 0;
+      text-align: center;
     }
 
     .section-original {
       margin: 0;
       font-size: 18px;
-      line-height: 1.25;
+      line-height: 1.3;
       font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
     .section-zh {
-      margin: 5px 0 0;
+      margin: 8px 0 0;
       color: var(--zh);
       font-size: 15px;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
     .section-note {
@@ -105,15 +102,27 @@
       font-size: 13px;
       line-height: 1.45;
       white-space: pre-line;
+      text-align: center;
+    }
+
+    .section-items {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(
+        180deg,
+        rgba(24, 24, 24, 0.98) 0%,
+        rgba(19, 19, 19, 0.98) 100%
+      );
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
     }
 
     .item {
-      padding: 16px;
-      border-top: 1px solid var(--line);
+      padding: 18px 18px 17px;
+      border-top: 1px solid rgba(255,255,255,0.05);
     }
 
-    .section-head + .item { border-top: 0; }
-    .section > .item:first-child { border-top: 0; }
+    .section-items > .item:first-child { border-top: 0; }
 
     .item-top {
       display: grid;
@@ -138,7 +147,8 @@
       color: var(--price);
       font-size: 16px;
       line-height: 1.35;
-      font-weight: 700;
+      font-weight: 500;
+      letter-spacing: 0.01em;
       white-space: nowrap;
     }
 
@@ -199,8 +209,7 @@
 
     @media (min-width: 640px) {
       .shell { padding-left: 22px; padding-right: 22px; }
-      .item { padding: 18px; }
-      .section-head { padding: 17px 18px 16px; }
+      .item { padding: 19px 20px 18px; }
     }
   </style>
 </head>
@@ -327,25 +336,28 @@
           hasText(section?.note);
 
         if (hasHeading) {
-          const head = el("div", "section-head");
+          const title = el("div", "section-title");
 
           if (hasText(section.original)) {
-            head.append(el("h2", "section-original", section.original));
+            title.append(el("h2", "section-original", section.original));
           }
 
           if (hasText(section.zh)) {
-            head.append(el("p", "section-zh", section.zh));
+            title.append(el("p", "section-zh", section.zh));
           }
 
           if (hasText(section.note)) {
-            head.append(el("p", "section-note", section.note));
+            title.append(el("p", "section-note", section.note));
           }
 
-          wrap.append(head);
+          wrap.append(title);
         }
 
+        const itemsWrap = el("div", "section-items");
         const items = Array.isArray(section?.items) ? section.items : [];
-        items.forEach((item) => wrap.append(renderItem(item || {})));
+        items.forEach((item) => itemsWrap.append(renderItem(item || {})));
+        wrap.append(itemsWrap);
+
         return wrap;
       }
 
