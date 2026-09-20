@@ -108,6 +108,11 @@
       text-align: center;
     }
 
+    .section-note-zh {
+      margin-top: 4px;
+      color: var(--zh);
+    }
+
     .section-items,
     .order-list {
       overflow: hidden;
@@ -471,7 +476,12 @@
           sections: raw.s.map((section) => ({
             original: hasText(section?.o) ? section.o : "",
             zh: hasText(section?.z) ? section.z : "",
-            note: hasText(section?.n) ? section.n : "",
+            original_note: hasText(section?.no)
+              ? section.no
+              : hasText(section?.n)
+                ? section.n
+                : "",
+            zh_note: hasText(section?.nz) ? section.nz : "",
             items: Array.isArray(section?.i)
               ? section.i.map((item) => ({
                   original_name: hasText(item?.o) ? item.o : "",
@@ -479,7 +489,12 @@
                   original_description: hasText(item?.od) ? item.od : "",
                   zh_description: hasText(item?.zd) ? item.zd : "",
                   price: hasText(item?.p) ? item.p : "",
-                  note: hasText(item?.n) ? item.n : ""
+                  original_note: hasText(item?.no)
+                    ? item.no
+                    : hasText(item?.n)
+                      ? item.n
+                      : "",
+                  zh_note: hasText(item?.nz) ? item.nz : ""
                 }))
               : []
           }))
@@ -664,7 +679,13 @@
           card.append(el("p", "zh-description", fields.zhDescription));
         }
 
-        if (hasText(item?.note)) {
+        if (hasText(item?.original_note)) {
+          card.append(el("p", "item-note", item.original_note));
+        }
+
+        if (hasText(item?.zh_note)) {
+          card.append(el("p", "item-note", item.zh_note));
+        } else if (hasText(item?.note)) {
           card.append(el("p", "item-note", item.note));
         }
 
@@ -699,6 +720,8 @@
         const hasHeading =
           hasText(section?.original) ||
           hasText(section?.zh) ||
+          hasText(section?.original_note) ||
+          hasText(section?.zh_note) ||
           hasText(section?.note);
 
         if (hasHeading) {
@@ -712,8 +735,14 @@
             title.append(el("p", "section-zh", section.zh));
           }
 
-          if (hasText(section.note)) {
+          if (hasText(section.original_note)) {
+            title.append(el("p", "section-note", section.original_note));
+          } else if (hasText(section.note)) {
             title.append(el("p", "section-note", section.note));
+          }
+
+          if (hasText(section.zh_note)) {
+            title.append(el("p", "section-note section-note-zh", section.zh_note));
           }
 
           wrap.append(title);
