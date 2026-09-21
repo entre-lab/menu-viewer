@@ -239,6 +239,164 @@
       cursor: pointer;
     }
 
+
+    .item-selection-count {
+      align-self: center;
+      margin-right: auto;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .config-panel {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .config-group {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .config-group + .config-group {
+      margin-top: 16px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .config-title {
+      width: 100%;
+      margin: 0 0 9px;
+      padding: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .config-title-zh {
+      display: block;
+      margin-top: 2px;
+      color: var(--zh);
+      font-weight: 600;
+    }
+
+    .config-price {
+      margin-left: 7px;
+      color: var(--price);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .config-required {
+      margin-left: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .config-option {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+
+    .config-option input {
+      width: 17px;
+      height: 17px;
+      margin: 2px 0 0;
+      accent-color: var(--price);
+    }
+
+    .config-option-text {
+      min-width: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .config-option-zh {
+      display: block;
+      margin-top: 2px;
+      color: var(--zh);
+      font-size: 13px;
+    }
+
+    .config-option-price {
+      color: var(--price);
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .config-error {
+      min-height: 18px;
+      margin: 8px 0 0;
+      color: #d9a0a0;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .config-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .config-cancel,
+    .config-confirm {
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    .config-cancel {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--zh);
+    }
+
+    .config-confirm {
+      border: 1px solid rgba(216,178,122,0.45);
+      background: rgba(216,178,122,0.10);
+      color: var(--price);
+    }
+
+    .order-options {
+      margin-top: 11px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .order-option-group + .order-option-group {
+      margin-top: 8px;
+    }
+
+    .order-option-title {
+      color: var(--zh);
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .order-option-value {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     .stepper {
       display: inline-grid;
       grid-template-columns: 38px 42px 38px;
@@ -466,6 +624,46 @@
         return decodePayload(params.get("d"));
       }
 
+
+      function normalizeGroups(groups) {
+        if (!Array.isArray(groups)) return [];
+
+        return groups
+          .map((group) => {
+            const options = Array.isArray(group?.v)
+              ? group.v
+                  .map((option) => ({
+                    original: hasText(option?.o) ? option.o : "",
+                    zh: hasText(option?.z) ? option.z : "",
+                    price: hasText(option?.p) ? option.p : ""
+                  }))
+                  .filter(
+                    (option) =>
+                      hasText(option.original) ||
+                      hasText(option.zh) ||
+                      hasText(option.price)
+                  )
+              : [];
+
+            return {
+              original: hasText(group?.o) ? group.o : "",
+              zh: hasText(group?.z) ? group.z : "",
+              price: hasText(group?.p) ? group.p : "",
+              mode:
+                group?.m === "n" || group?.m === "many"
+                  ? "many"
+                  : "one",
+              required: group?.r === 1 || group?.r === true,
+              options
+            };
+          })
+          .filter(
+            (group) =>
+              group.options.length > 0 &&
+              (hasText(group.original) || hasText(group.zh))
+          );
+      }
+
       function normalizeCompactPayload(raw) {
         if (!raw || typeof raw !== "object" || !Array.isArray(raw.s)) {
           return raw;
@@ -482,6 +680,7 @@
                 ? section.n
                 : "",
             zh_note: hasText(section?.nz) ? section.nz : "",
+            groups: normalizeGroups(section?.g),
             items: Array.isArray(section?.i)
               ? section.i.map((item) => ({
                   original_name: hasText(item?.o) ? item.o : "",
@@ -494,7 +693,8 @@
                     : hasText(item?.n)
                       ? item.n
                       : "",
-                  zh_note: hasText(item?.nz) ? item.nz : ""
+                  zh_note: hasText(item?.nz) ? item.nz : "",
+                  groups: normalizeGroups(item?.g)
                 }))
               : []
           }))
@@ -522,9 +722,51 @@
           if (!parsed || typeof parsed !== "object") return;
 
           Object.entries(parsed).forEach(([key, value]) => {
-            const qty = Number(value);
-            if (Number.isInteger(qty) && qty > 0) {
-              order.set(key, qty);
+            if (Number.isInteger(Number(value)) && Number(value) > 0) {
+              const [base] = key.split("::");
+              const [sectionIndex, itemIndex] = base.split(":").map(Number);
+              if (
+                Number.isInteger(sectionIndex) &&
+                Number.isInteger(itemIndex)
+              ) {
+                order.set(key, {
+                  qty: Number(value),
+                  sectionIndex,
+                  itemIndex,
+                  selections: []
+                });
+              }
+              return;
+            }
+
+            if (!value || typeof value !== "object") return;
+
+            const qty = Number(value.qty);
+            let sectionIndex = Number(value.sectionIndex);
+            let itemIndex = Number(value.itemIndex);
+
+            if (
+              !Number.isInteger(sectionIndex) ||
+              !Number.isInteger(itemIndex)
+            ) {
+              const [base] = key.split("::");
+              [sectionIndex, itemIndex] = base.split(":").map(Number);
+            }
+
+            if (
+              Number.isInteger(qty) &&
+              qty > 0 &&
+              Number.isInteger(sectionIndex) &&
+              Number.isInteger(itemIndex)
+            ) {
+              order.set(key, {
+                qty,
+                sectionIndex,
+                itemIndex,
+                selections: Array.isArray(value.selections)
+                  ? value.selections
+                  : []
+              });
             }
           });
         } catch {
@@ -535,8 +777,8 @@
       function saveOrder() {
         try {
           const plain = {};
-          order.forEach((value, key) => {
-            if (value > 0) plain[key] = value;
+          order.forEach((entry, key) => {
+            if (entry?.qty > 0) plain[key] = entry;
           });
           sessionStorage.setItem(storageKey, JSON.stringify(plain));
         } catch {
@@ -549,17 +791,37 @@
       }
 
       function quantityFor(sectionIndex, itemIndex) {
-        return order.get(itemKey(sectionIndex, itemIndex)) || 0;
+        return order.get(itemKey(sectionIndex, itemIndex))?.qty || 0;
+      }
+
+      function configuredQuantityForItem(sectionIndex, itemIndex) {
+        let total = 0;
+        order.forEach((entry) => {
+          if (
+            entry?.sectionIndex === sectionIndex &&
+            entry?.itemIndex === itemIndex
+          ) {
+            total += entry.qty || 0;
+          }
+        });
+        return total;
       }
 
       function totalQuantity() {
         let total = 0;
-        order.forEach((qty) => { total += qty; });
+        order.forEach((entry) => {
+          total += entry?.qty || 0;
+        });
         return total;
       }
 
       function selectedItemCount() {
         return order.size;
+      }
+
+      function configuredEntryKey(sectionIndex, itemIndex, selections) {
+        const signature = encodeURIComponent(JSON.stringify(selections));
+        return itemKey(sectionIndex, itemIndex) + "::" + signature;
       }
 
       function itemFields(item) {
@@ -611,10 +873,19 @@
 
       function changeQuantity(sectionIndex, itemIndex, delta) {
         const key = itemKey(sectionIndex, itemIndex);
-        const next = Math.max(0, (order.get(key) || 0) + delta);
+        const existing = order.get(key) || {
+          qty: 0,
+          sectionIndex,
+          itemIndex,
+          selections: []
+        };
+        const next = Math.max(0, existing.qty + delta);
 
-        if (next > 0) order.set(key, next);
-        else order.delete(key);
+        if (next > 0) {
+          order.set(key, { ...existing, qty: next });
+        } else {
+          order.delete(key);
+        }
 
         saveOrder();
 
@@ -623,6 +894,46 @@
         } else {
           preserveScrollRender(renderMenu);
         }
+      }
+
+      function changeEntryQuantity(entryKey, delta) {
+        const existing = order.get(entryKey);
+        if (!existing) return;
+
+        const next = Math.max(0, (existing.qty || 0) + delta);
+        if (next > 0) order.set(entryKey, { ...existing, qty: next });
+        else order.delete(entryKey);
+
+        saveOrder();
+
+        if (currentView === "summary") {
+          preserveScrollRender(renderSummary);
+        } else {
+          preserveScrollRender(renderMenu);
+        }
+      }
+
+      function addConfiguredEntry(sectionIndex, itemIndex, selections) {
+        const key = configuredEntryKey(
+          sectionIndex,
+          itemIndex,
+          selections
+        );
+        const existing = order.get(key);
+
+        if (existing) {
+          order.set(key, { ...existing, qty: existing.qty + 1 });
+        } else {
+          order.set(key, {
+            qty: 1,
+            sectionIndex,
+            itemIndex,
+            selections
+          });
+        }
+
+        saveOrder();
+        preserveScrollRender(renderMenu);
       }
 
       function createStepper(sectionIndex, itemIndex, quantity) {
@@ -648,7 +959,174 @@
         return stepper;
       }
 
-      function renderItem(item, sectionIndex, itemIndex) {
+      function createEntryStepper(entryKey, quantity) {
+        const stepper = el("div", "stepper");
+
+        const minus = el("button", "", "−");
+        minus.type = "button";
+        minus.setAttribute("aria-label", "減少數量");
+        minus.addEventListener("click", () =>
+          changeEntryQuantity(entryKey, -1)
+        );
+
+        const qty = el("span", "qty", quantity);
+
+        const plus = el("button", "", "+");
+        plus.type = "button";
+        plus.setAttribute("aria-label", "增加數量");
+        plus.addEventListener("click", () =>
+          changeEntryQuantity(entryKey, 1)
+        );
+
+        stepper.append(minus, qty, plus);
+        return stepper;
+      }
+
+      function combinedGroups(item, sectionGroups) {
+        const inherited = Array.isArray(sectionGroups)
+          ? sectionGroups
+          : [];
+        const own = Array.isArray(item?.groups) ? item.groups : [];
+        return [...inherited, ...own];
+      }
+
+      function createConfigurationPanel(
+        groups,
+        sectionIndex,
+        itemIndex,
+        onCancel
+      ) {
+        const panel = el("div", "config-panel");
+        const controls = [];
+
+        groups.forEach((group, groupIndex) => {
+          const fieldset = el("fieldset", "config-group");
+          const legend = el("legend", "config-title");
+
+          if (hasText(group.original)) {
+            legend.append(document.createTextNode(group.original));
+          }
+          if (hasText(group.price)) {
+            legend.append(el("span", "config-price", group.price));
+          }
+          if (group.required) {
+            legend.append(el("span", "config-required", "必選"));
+          }
+          if (hasText(group.zh)) {
+            legend.append(el("span", "config-title-zh", group.zh));
+          }
+
+          fieldset.append(legend);
+
+          const inputName =
+            "option-" + sectionIndex + "-" + itemIndex + "-" + groupIndex;
+          const inputs = [];
+
+          if (group.mode === "one" && !group.required) {
+            const none = el("label", "config-option");
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = inputName;
+            input.value = "";
+            input.checked = true;
+            none.append(
+              input,
+              el("span", "config-option-text", "不變更")
+            );
+            fieldset.append(none);
+            inputs.push(input);
+          }
+
+          group.options.forEach((option, optionIndex) => {
+            const row = el("label", "config-option");
+            const input = document.createElement("input");
+            input.type = group.mode === "many" ? "checkbox" : "radio";
+            input.name =
+              group.mode === "many"
+                ? inputName + "-" + optionIndex
+                : inputName;
+            input.value = String(optionIndex);
+
+            const label = el("span", "config-option-text");
+            if (hasText(option.original)) {
+              label.append(document.createTextNode(option.original));
+            }
+            if (hasText(option.zh)) {
+              label.append(el("span", "config-option-zh", option.zh));
+            }
+
+            row.append(input, label);
+            if (hasText(option.price)) {
+              row.append(el("span", "config-option-price", option.price));
+            }
+
+            fieldset.append(row);
+            inputs.push(input);
+          });
+
+          controls.push({ group, inputs });
+          panel.append(fieldset);
+        });
+
+        const error = el("div", "config-error");
+        panel.append(error);
+
+        const actions = el("div", "config-actions");
+        const cancel = el("button", "config-cancel", "取消");
+        cancel.type = "button";
+        cancel.addEventListener("click", onCancel);
+
+        const confirm = el("button", "config-confirm", "確認加入");
+        confirm.type = "button";
+        confirm.addEventListener("click", () => {
+          const selections = [];
+
+          for (const control of controls) {
+            const { group, inputs } = control;
+            const checked = inputs.filter(
+              (input) => input.checked && input.value !== ""
+            );
+
+            if (group.required && checked.length === 0) {
+              error.textContent = "請完成必選項目。";
+              return;
+            }
+
+            if (checked.length > 0) {
+              selections.push({
+                o: group.original,
+                z: group.zh,
+                p: group.price,
+                v: checked.map((input) => {
+                  const option = group.options[Number(input.value)];
+                  return {
+                    o: option?.original || "",
+                    z: option?.zh || "",
+                    p: option?.price || ""
+                  };
+                })
+              });
+            }
+          }
+
+          addConfiguredEntry(
+            sectionIndex,
+            itemIndex,
+            selections
+          );
+        });
+
+        actions.append(cancel, confirm);
+        panel.append(actions);
+        return panel;
+      }
+
+      function renderItem(
+        item,
+        sectionIndex,
+        itemIndex,
+        sectionGroups = []
+      ) {
         const card = el("article", "item");
         const fields = itemFields(item);
         const top = el("div", "item-top");
@@ -694,19 +1172,62 @@
 
         if (hasOrderableLabel) {
           const actions = el("div", "item-actions");
-          const quantity = quantityFor(sectionIndex, itemIndex);
+          const groups = combinedGroups(item, sectionGroups);
 
-          if (quantity > 0) {
-            actions.append(
-              createStepper(sectionIndex, itemIndex, quantity)
+          if (groups.length > 0) {
+            const configuredQuantity = configuredQuantityForItem(
+              sectionIndex,
+              itemIndex
             );
-          } else {
-            const add = el("button", "add-button", "加入");
+
+            if (configuredQuantity > 0) {
+              actions.append(
+                el(
+                  "span",
+                  "item-selection-count",
+                  "已選 " + configuredQuantity + " 份"
+                )
+              );
+            }
+
+            const add = el(
+              "button",
+              "add-button",
+              configuredQuantity > 0 ? "再加入" : "選擇"
+            );
             add.type = "button";
-            add.addEventListener("click", () =>
-              changeQuantity(sectionIndex, itemIndex, 1)
-            );
+            add.addEventListener("click", () => {
+              const existing = card.querySelector(".config-panel");
+              if (existing) {
+                existing.remove();
+                return;
+              }
+
+              card.append(
+                createConfigurationPanel(
+                  groups,
+                  sectionIndex,
+                  itemIndex,
+                  () => card.querySelector(".config-panel")?.remove()
+                )
+              );
+            });
             actions.append(add);
+          } else {
+            const quantity = quantityFor(sectionIndex, itemIndex);
+
+            if (quantity > 0) {
+              actions.append(
+                createStepper(sectionIndex, itemIndex, quantity)
+              );
+            } else {
+              const add = el("button", "add-button", "加入");
+              add.type = "button";
+              add.addEventListener("click", () =>
+                changeQuantity(sectionIndex, itemIndex, 1)
+              );
+              actions.append(add);
+            }
           }
 
           card.append(actions);
@@ -752,7 +1273,12 @@
         const items = Array.isArray(section?.items) ? section.items : [];
         items.forEach((item, itemIndex) =>
           itemsWrap.append(
-            renderItem(item || {}, sectionIndex, itemIndex)
+            renderItem(
+              item || {},
+              sectionIndex,
+              itemIndex,
+              section?.groups || []
+            )
           )
         );
         wrap.append(itemsWrap);
@@ -842,23 +1368,87 @@
         currentSections.forEach((section, sectionIndex) => {
           const items = Array.isArray(section?.items) ? section.items : [];
           items.forEach((item, itemIndex) => {
-            const quantity = quantityFor(sectionIndex, itemIndex);
-            if (quantity > 0) {
-              entries.push({
-                sectionIndex,
-                itemIndex,
-                item: item || {},
-                quantity
-              });
-            }
+            order.forEach((entry, entryKey) => {
+              if (
+                entry?.sectionIndex === sectionIndex &&
+                entry?.itemIndex === itemIndex &&
+                entry?.qty > 0
+              ) {
+                entries.push({
+                  entryKey,
+                  sectionIndex,
+                  itemIndex,
+                  item: item || {},
+                  quantity: entry.qty,
+                  selections: Array.isArray(entry.selections)
+                    ? entry.selections
+                    : []
+                });
+              }
+            });
           });
         });
 
         return entries;
       }
 
+      function renderOrderSelections(selections) {
+        if (!Array.isArray(selections) || selections.length === 0) {
+          return null;
+        }
+
+        const wrap = el("div", "order-options");
+
+        selections.forEach((selection) => {
+          const group = el("div", "order-option-group");
+          const titleParts = [];
+
+          if (hasText(selection?.o)) titleParts.push(selection.o);
+          if (hasText(selection?.z)) titleParts.push(selection.z);
+
+          const title = el(
+            "div",
+            "order-option-title",
+            titleParts.join(" / ")
+          );
+          if (hasText(selection?.p)) {
+            title.append(
+              document.createTextNode("  " + selection.p)
+            );
+          }
+          group.append(title);
+
+          const values = Array.isArray(selection?.v) ? selection.v : [];
+          values.forEach((option) => {
+            const valueParts = [];
+            if (hasText(option?.o)) valueParts.push(option.o);
+            if (hasText(option?.z)) valueParts.push(option.z);
+
+            let valueText = valueParts.join(" / ");
+            if (hasText(option?.p)) {
+              valueText += (valueText ? "  " : "") + option.p;
+            }
+
+            if (hasText(valueText)) {
+              group.append(
+                el("div", "order-option-value", valueText)
+              );
+            }
+          });
+
+          wrap.append(group);
+        });
+
+        return wrap;
+      }
+
       function renderOrderItem(entry) {
-        const { sectionIndex, itemIndex, item, quantity } = entry;
+        const {
+          entryKey,
+          item,
+          quantity,
+          selections
+        } = entry;
         const fields = itemFields(item);
         const card = el("article", "order-item");
         const top = el("div", "order-item-top");
@@ -882,10 +1472,11 @@
         top.append(names, side);
         card.append(top);
 
+        const optionView = renderOrderSelections(selections);
+        if (optionView) card.append(optionView);
+
         const adjust = el("div", "order-adjust");
-        adjust.append(
-          createStepper(sectionIndex, itemIndex, quantity)
-        );
+        adjust.append(createEntryStepper(entryKey, quantity));
         card.append(adjust);
 
         return card;
