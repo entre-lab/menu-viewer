@@ -74,8 +74,60 @@
       cursor: pointer;
     }
 
+    .category-nav {
+      position: sticky;
+      z-index: 12;
+      top: max(8px, env(safe-area-inset-top));
+      margin: -4px 0 20px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(18,18,18,0.94);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .category-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .category-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-chip {
+      flex: 0 0 auto;
+      min-height: 38px;
+      max-width: 180px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--zh);
+      padding: 8px 13px;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 650;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .category-chip[aria-current="true"] {
+      border-color: rgba(216,178,122,0.38);
+      background: rgba(216,178,122,0.10);
+      color: var(--price);
+    }
+
     .section {
       margin: 0 0 26px;
+      scroll-margin-top: 78px;
     }
 
     .section-title {
@@ -571,6 +623,7 @@
       let currentView = "menu";
       let order = new Map();
       let storageKey = "";
+      let categoryObserver = null;
 
       const hasText = (value) =>
         typeof value === "string" && value.trim().length > 0;
@@ -1238,6 +1291,7 @@
 
       function renderSection(section, sectionIndex) {
         const wrap = el("section", "section");
+        wrap.id = "menu-section-" + sectionIndex;
         const hasHeading =
           hasText(section?.original) ||
           hasText(section?.zh) ||
@@ -1340,6 +1394,127 @@
         }
       }
 
+
+      function categorySections() {
+        return currentSections
+          .map((section, sectionIndex) => ({
+            section,
+            sectionIndex,
+            items: Array.isArray(section?.items) ? section.items : []
+          }))
+          .filter(({ section, items }) =>
+            items.length > 0 &&
+            (hasText(section?.original) || hasText(section?.zh))
+          );
+      }
+
+      function categoryLabel(section) {
+        if (hasText(section?.zh)) return section.zh.trim();
+        if (hasText(section?.original)) return section.original.trim();
+        return "分類";
+      }
+
+      function setActiveCategory(nav, key) {
+        nav.querySelectorAll(".category-chip").forEach((chip) => {
+          const active = chip.dataset.category === key;
+          chip.setAttribute("aria-current", active ? "true" : "false");
+          if (active) {
+            chip.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+              inline: "center"
+            });
+          }
+        });
+      }
+
+      function renderCategoryNav() {
+        const categories = categorySections();
+        if (categories.length < 3) return null;
+
+        const nav = el("nav", "category-nav");
+        nav.setAttribute("aria-label", "菜單分類");
+
+        const scroller = el("div", "category-scroll");
+        const all = el("button", "category-chip", "全部");
+        all.type = "button";
+        all.dataset.category = "all";
+        all.setAttribute("aria-current", "true");
+        all.addEventListener("click", () => {
+          setActiveCategory(nav, "all");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        scroller.append(all);
+
+        categories.forEach(({ section, sectionIndex }) => {
+          const chip = el(
+            "button",
+            "category-chip",
+            categoryLabel(section)
+          );
+          chip.type = "button";
+          chip.dataset.category = String(sectionIndex);
+          chip.setAttribute("aria-current", "false");
+          chip.addEventListener("click", () => {
+            setActiveCategory(nav, String(sectionIndex));
+            document
+              .getElementById("menu-section-" + sectionIndex)
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          scroller.append(chip);
+        });
+
+        nav.append(scroller);
+
+        nav._categoryIndexes = categories.map(
+          ({ sectionIndex }) => sectionIndex
+        );
+
+        return nav;
+      }
+
+
+      function initCategoryObserver(nav) {
+        if (categoryObserver) categoryObserver.disconnect();
+        categoryObserver = null;
+
+        if (!nav || !("IntersectionObserver" in window)) return;
+
+        categoryObserver = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort(
+                (a, b) =>
+                  Math.abs(a.boundingClientRect.top) -
+                  Math.abs(b.boundingClientRect.top)
+              );
+
+            if (!visible.length) return;
+
+            const sectionIndex =
+              visible[0].target.dataset.sectionIndex;
+            if (sectionIndex !== undefined) {
+              setActiveCategory(nav, sectionIndex);
+            }
+          },
+          {
+            root: null,
+            rootMargin: "-72px 0px -62% 0px",
+            threshold: [0, 0.01]
+          }
+        );
+
+        (nav._categoryIndexes || []).forEach((sectionIndex) => {
+          const node = document.getElementById(
+            "menu-section-" + sectionIndex
+          );
+          if (!node) return;
+          node.dataset.sectionIndex = String(sectionIndex);
+          categoryObserver.observe(node);
+        });
+      }
+
       function renderMenu() {
         currentView = "menu";
         app.replaceChildren();
@@ -1355,10 +1530,14 @@
         header.append(share);
         app.append(header);
 
+        const categoryNav = renderCategoryNav();
+        if (categoryNav) app.append(categoryNav);
+
         currentSections.forEach((section, sectionIndex) =>
           app.append(renderSection(section || {}, sectionIndex))
         );
 
+        initCategoryObserver(categoryNav);
         renderOrderDock();
       }
 
@@ -1614,6 +1793,10 @@
       function renderSummary() {
         currentView = "summary";
         orderDock.hidden = true;
+        if (categoryObserver) {
+          categoryObserver.disconnect();
+          categoryObserver = null;
+        }
         app.replaceChildren();
         document.title = "點餐清單 · Menu Viewer";
 
