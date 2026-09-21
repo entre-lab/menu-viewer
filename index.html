@@ -1392,6 +1392,134 @@
         return entries;
       }
 
+
+      function parseSimplePrice(value) {
+        if (!hasText(value)) return null;
+
+        const raw = value.trim().replace(/\s+/g, "");
+        const prefixMatch = raw.match(
+          /^([€$£¥￥])([+-]?\d+(?:[.,]\d{1,2})?)$/
+        );
+        const suffixMatch = raw.match(
+          /^([+-]?\d+(?:[.,]\d{1,2})?)(€|EUR|円|¥|￥|\$|USD|£|GBP)$/i
+        );
+
+        let amountText = "";
+        let currency = "";
+        let position = "suffix";
+
+        if (prefixMatch) {
+          currency = prefixMatch[1];
+          amountText = prefixMatch[2];
+          position = "prefix";
+        } else if (suffixMatch) {
+          amountText = suffixMatch[1];
+          currency = suffixMatch[2];
+        } else {
+          return null;
+        }
+
+        const normalized = amountText.replace(",", ".");
+        const amount = Number(normalized);
+        if (!Number.isFinite(amount)) return null;
+
+        const decimalSeparator = amountText.includes(",")
+          ? ","
+          : amountText.includes(".")
+            ? "."
+            : "";
+        const fraction = decimalSeparator
+          ? amountText.split(decimalSeparator)[1] || ""
+          : "";
+
+        return {
+          amount,
+          currency,
+          position,
+          decimalSeparator,
+          decimals: fraction.length
+        };
+      }
+
+      function sameCurrency(a, b) {
+        if (!a || !b) return false;
+        const normalize = (value) => {
+          const upper = value.toUpperCase();
+          if (upper === "EUR") return "€";
+          if (upper === "USD") return "$";
+          if (upper === "GBP") return "£";
+          if (upper === "¥" || upper === "￥" || upper === "円") return "JPY";
+          return upper;
+        };
+        return normalize(a.currency) === normalize(b.currency);
+      }
+
+      function formatConfiguredPrice(amount, template, decimals) {
+        const precision = Math.max(
+          Number.isInteger(decimals) ? decimals : 0,
+          template?.decimals || 0
+        );
+        let number = amount.toFixed(precision);
+
+        if (template?.decimalSeparator === ",") {
+          number = number.replace(".", ",");
+        }
+
+        const currency = template?.currency || "";
+        return template?.position === "prefix"
+          ? currency + number
+          : number + currency;
+      }
+
+      function configuredUnitPrice(item, selections) {
+        const baseText = hasText(item?.price) ? item.price : "";
+        const priceParts = [];
+
+        (Array.isArray(selections) ? selections : []).forEach((selection) => {
+          if (hasText(selection?.p)) priceParts.push(selection.p);
+          const values = Array.isArray(selection?.v) ? selection.v : [];
+          values.forEach((option) => {
+            if (hasText(option?.p)) priceParts.push(option.p);
+          });
+        });
+
+        if (!priceParts.length) {
+          return { text: baseText, calculated: false, hasAdjustments: false };
+        }
+
+        const base = parseSimplePrice(baseText);
+        if (!base) {
+          return {
+            text: baseText ? baseText + " + 加價" : "含加價選項",
+            calculated: false,
+            hasAdjustments: true
+          };
+        }
+
+        let total = base.amount;
+        let decimals = base.decimals;
+
+        for (const part of priceParts) {
+          const parsed = parseSimplePrice(part);
+          if (!parsed || !sameCurrency(base, parsed)) {
+            return {
+              text: baseText + " + 加價",
+              calculated: false,
+              hasAdjustments: true
+            };
+          }
+
+          total += parsed.amount;
+          decimals = Math.max(decimals, parsed.decimals);
+        }
+
+        return {
+          text: formatConfiguredPrice(total, base, decimals),
+          calculated: true,
+          hasAdjustments: true
+        };
+      }
+
       function renderOrderSelections(selections) {
         if (!Array.isArray(selections) || selections.length === 0) {
           return null;
@@ -1465,8 +1593,9 @@
         const side = el("div", "order-item-side");
         side.append(el("div", "order-qty", "×" + quantity));
 
-        if (hasText(item?.price)) {
-          side.append(el("div", "price", item.price));
+        const configuredPrice = configuredUnitPrice(item, selections);
+        if (hasText(configuredPrice.text)) {
+          side.append(el("div", "price", configuredPrice.text));
         }
 
         top.append(names, side);
