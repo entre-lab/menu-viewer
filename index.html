@@ -624,6 +624,8 @@
       let order = new Map();
       let storageKey = "";
       let categoryObserver = null;
+      let categoryNavigationToken = 0;
+      let categoryNavigationLock = null;
 
       const hasText = (value) =>
         typeof value === "string" && value.trim().length > 0;
@@ -1414,18 +1416,96 @@
         return "分類";
       }
 
+      function centerCategoryChip(nav, chip) {
+        const scroller = nav?.querySelector(".category-scroll");
+        if (!scroller || !chip) return;
+
+        const scrollerRect = scroller.getBoundingClientRect();
+        const chipRect = chip.getBoundingClientRect();
+        const left =
+          scroller.scrollLeft +
+          (chipRect.left - scrollerRect.left) -
+          (scrollerRect.width - chipRect.width) / 2;
+
+        scroller.scrollTo({
+          left: Math.max(0, left),
+          behavior: "smooth"
+        });
+      }
+
       function setActiveCategory(nav, key) {
+        let activeChip = null;
+
         nav.querySelectorAll(".category-chip").forEach((chip) => {
           const active = chip.dataset.category === key;
           chip.setAttribute("aria-current", active ? "true" : "false");
-          if (active) {
-            chip.scrollIntoView({
-              behavior: "smooth",
-              block: "nearest",
-              inline: "center"
-            });
-          }
+          if (active) activeChip = chip;
         });
+
+        if (activeChip) centerCategoryChip(nav, activeChip);
+      }
+
+      function finishCategoryNavigation(nav, token, key) {
+        if (token !== categoryNavigationToken) return;
+
+        categoryNavigationLock = null;
+        setActiveCategory(nav, key);
+      }
+
+      function holdCategoryUntilScrollSettles(nav, key, target) {
+        categoryNavigationToken += 1;
+        const token = categoryNavigationToken;
+        categoryNavigationLock = { token, key };
+
+        let lastY = window.scrollY;
+        let stableFrames = 0;
+        let frames = 0;
+
+        const check = () => {
+          if (
+            token !== categoryNavigationToken ||
+            currentView !== "menu"
+          ) {
+            return;
+          }
+
+          frames += 1;
+          const y = window.scrollY;
+
+          if (Math.abs(y - lastY) < 0.5) stableFrames += 1;
+          else stableFrames = 0;
+
+          lastY = y;
+
+          const targetReached =
+            key === "all"
+              ? window.scrollY < 8
+              : target
+                ? Math.abs(target.getBoundingClientRect().top - 78) < 28
+                : true;
+
+          if ((stableFrames >= 4 && targetReached) || frames > 150) {
+            finishCategoryNavigation(nav, token, key);
+            return;
+          }
+
+          requestAnimationFrame(check);
+        };
+
+        requestAnimationFrame(check);
+        return token;
+      }
+
+      function navigateToCategory(nav, key, target) {
+        setActiveCategory(nav, key);
+        holdCategoryUntilScrollSettles(nav, key, target);
+
+        if (key === "all") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       function renderCategoryNav() {
@@ -1441,8 +1521,7 @@
         all.dataset.category = "all";
         all.setAttribute("aria-current", "true");
         all.addEventListener("click", () => {
-          setActiveCategory(nav, "all");
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          navigateToCategory(nav, "all", null);
         });
         scroller.append(all);
 
@@ -1456,10 +1535,14 @@
           chip.dataset.category = String(sectionIndex);
           chip.setAttribute("aria-current", "false");
           chip.addEventListener("click", () => {
-            setActiveCategory(nav, String(sectionIndex));
-            document
-              .getElementById("menu-section-" + sectionIndex)
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            const target = document.getElementById(
+              "menu-section-" + sectionIndex
+            );
+            navigateToCategory(
+              nav,
+              String(sectionIndex),
+              target
+            );
           });
           scroller.append(chip);
         });
@@ -1482,6 +1565,13 @@
 
         categoryObserver = new IntersectionObserver(
           (entries) => {
+            if (categoryNavigationLock) return;
+
+            if (window.scrollY < 8) {
+              setActiveCategory(nav, "all");
+              return;
+            }
+
             const visible = entries
               .filter((entry) => entry.isIntersecting)
               .sort(
@@ -1797,6 +1887,8 @@
           categoryObserver.disconnect();
           categoryObserver = null;
         }
+        categoryNavigationToken += 1;
+        categoryNavigationLock = null;
         app.replaceChildren();
         document.title = "點餐清單 · Menu Viewer";
 
